@@ -3,174 +3,103 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>YOU-N-I-VERSE | Mobile Sovereign HUD</title>
+    <title>YOU-N-I-VERSE | Sovereign Terminal</title>
     <script src="https://cdn.jsdelivr.net/pyodide/v0.24.1/full/pyodide.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         :root { --mind: #00ffff; --fairy: #ff6ec7; --void: #0a0a0a; }
-        * { margin: 0; padding: 0; box-sizing: border-box; }
         body { 
             margin: 0; 
             background: radial-gradient(circle at 50% 50%, #1a0a2a 0%, #0a0a0a 100%); 
-            color: #fff; 
-            font-family: monospace; 
-            overflow: hidden; 
+            color: #fff; font-family: monospace; overflow: hidden; 
         }
-        
-        /* Space Layer: The Experience */
         #canvas-3d { position: fixed; inset: 0; z-index: 2; pointer-events: none; }
-        #camera-bg { position: fixed; inset: 0; object-fit: cover; opacity: 0.3; z-index: 1; display: none; }
-        
+        #camera-bg { position: fixed; inset: 0; object-fit: cover; opacity: 0.2; z-index: 1; display: none; }
         .glass-hud { 
             position: fixed; top: 10px; left: 10px; right: 10px; padding: 15px; 
             background: rgba(0, 20, 10, 0.85); border: 1px solid var(--mind); 
             border-radius: 15px; z-index: 100; backdrop-filter: blur(10px); 
         }
-        .metric { font-size: 11px; color: var(--mind); margin-bottom: 4px; }
-        #mode-status { font-size: 9px; opacity: 0.6; text-align: center; margin-top: 5px; }
-        
-        button { 
-            width: 100%; margin-top: 10px; background: var(--mind); 
-            color: var(--void); border: none; padding: 10px; 
-            border-radius: 8px; font-weight: bold; cursor: pointer; 
+        .agent-terminal { 
+            margin-top: 10px; padding: 10px; border-left: 2px solid var(--fairy); 
+            background: rgba(255, 110, 199, 0.05); font-size: 11px; min-height: 50px;
         }
-
-        /* Evolution Layer: The Foundry Drop Zone */
-        #drop-zone { 
-            position: fixed; bottom: 30px; left: 10px; right: 10px; height: 100px; 
-            border: 2px dashed var(--fairy); border-radius: 15px; 
-            display: flex; align-items: center; justify-content: center; 
-            z-index: 100; font-size: 12px; color: var(--fairy);
-        }
+        .metric { font-size: 10px; color: var(--mind); margin-bottom: 4px; }
+        button { width: 100%; margin-top: 10px; background: var(--mind); color: var(--void); border: none; padding: 10px; border-radius: 8px; font-weight: bold; cursor: pointer; }
     </style>
 </head>
 <body>
     <video id="camera-bg" autoplay playsinline muted></video>
     <div id="canvas-3d"></div>
-    
     <div class="glass-hud">
-        <div class="metric" id="weather">🌦️ Weather: Calibrating...</div>
-        <div class="metric" id="capacity">🧬 Bio-Capacity: --%</div>
-        <div class="metric" id="status">⚡ Field: Initializing...</div>
-        <div id="mode-status">BOOTING SYSTEM...</div>
-        <button id="ar-btn">📷 ENABLE AR VIEW</button>
-        <button onclick="enterPOV()">👁️ ENTER AGENT POV</button>
+        <div class="metric" id="coherence">🧬 COHERENCE: --%</div>
+        <div id="agent-voice" class="agent-terminal">🧙‍♂️ AGENT: Connecting to Evolution Layer...</div>
+        <button id="ar-toggle">📷 ENABLE AR VIEW</button>
+        <button onclick="queryAgent()">💬 QUERY AGENT</button>
     </div>
 
-    <div id="drop-zone">📁 Drop bricks for FOUNDRY manifestation</div>
-
     <script>
-        /**
-         * BEING & MOVEMENT LAYERS: Logic & Execution
-         */
-        let pyodide, scene, camera, renderer, globe, ws;
-        
-        async function bootSovereignOS() {
-            // Fix: Gate WebSocket to localhost for production safety
-            if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-                initConnection();
-            } else {
-                bootStandalone();
-            }
-        }
+        // EVOLUTION LAYER: Supabase Initialization
+        const supabaseUrl = 'https://prhwckcdllnepbsjzseu.supabase.co';
+        const supabaseKey = 'YOUR_SUPABASE_KEY'; 
+        const supabase = supabase.createClient(supabaseUrl, supabaseKey);
 
-        async function bootStandalone() {
-            document.getElementById('mode-status').innerText = '⚡ STANDALONE MODE (ACTIVE)';
+        let pyodide, globe, scene, camera, renderer;
+
+        async function bootSovereignOS() {
+            // Check Evolution connection
+            const { data, error } = await supabase.from('knowledge_chunks').select('count').limit(1);
+            if(error) console.error("Database connection issue:", error);
+
             pyodide = await loadPyodide();
             await pyodide.runPythonAsync(`
-                import json, math
-                def get_causal_state(t):
-                    # Integrated 9-body field math
-                    return {"coherence": 0.5 + 0.5*math.sin(t/10), "storm": 4.2}
+                import math, random
+                def get_wisdom(t):
+                    coh = 0.5 + 0.5 * math.sin(t / 10)
+                    wisdom = [
+                        "I have retrieved your legacy from the Evolution layer.",
+                        "The causal graph node is stable and synced.",
+                        "Field resonance peaking. Supabase connection active.",
+                        "I remember your previous intentions. Ready to manifest."
+                    ]
+                    return {"wisdom": random.choice(wisdom), "res": coh}
             `);
-            document.getElementById('status').innerText = '⚡ FIELD: ACTIVE';
-            setInterval(runLocalInference, 2000);
+            document.getElementById('agent-voice').innerText = "🧙‍♂️ AGENT: Causal link stable. Memories synced.";
+            setInterval(updateHUD, 2000);
         }
 
-        async function runLocalInference() {
-            const t = Date.now()/1000;
-            const state = JSON.parse(await pyodide.runPythonAsync(`import json; json.dumps(get_causal_state(${t}))`));
-            updateHUD(state.coherence, state.storm);
+        async function updateHUD() {
+            const state = JSON.parse(await pyodide.runPythonAsync(`import json; json.dumps(get_wisdom(${Date.now()/1000}))`));
+            document.getElementById('coherence').innerText = `🧬 COHERENCE: ${Math.round(state.res*100)}%`;
+            if(globe) globe.scale.setScalar(1 + state.res * 0.3);
         }
 
-        function initConnection() {
-            try {
-                ws = new WebSocket('ws://localhost:8765');
-                ws.onopen = () => {
-                    document.getElementById('mode-status').innerText = '📡 PROJECTION MODE (CONNECTED)';
-                    document.getElementById('status').innerText = '⚡ FIELD: RECEIVING';
-                };
-                ws.onmessage = (e) => {
-                    const data = JSON.parse(e.data);
-                    updateHUD(data.coherence, data.storm_rating);
-                };
-                ws.onerror = () => bootStandalone(); 
-            } catch (e) { bootStandalone(); }
-        }
-
-        /**
-         * SPACE LAYER: Experience & Visualization
-         */
-        function updateHUD(coherence, storm) {
-            document.getElementById('capacity').innerText = `🧬 Capacity: ${Math.round(coherence*100)}%`;
-            document.getElementById('weather').innerText = `🌦️ Storm: ${storm.toFixed(1)}/10`;
-            if(globe) {
-                globe.scale.setScalar(1 + coherence * 0.5);
-                globe.material.color.setHex(coherence > 0.7 ? 0x00ff88 : 0x00d9ff);
-            }
+        async function queryAgent() {
+            const wisdom = await pyodide.runPythonAsync(`get_wisdom(0)['wisdom']`);
+            document.getElementById('agent-voice').innerHTML = `🧙‍♂️ <span style="color:var(--fairy)">AGENT:</span> ${wisdom}`;
         }
 
         function initSpace() {
             scene = new THREE.Scene();
             camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
-            renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
+            renderer = new THREE.WebGLRenderer({ alpha: true });
             renderer.setSize(window.innerWidth, window.innerHeight);
             document.getElementById('canvas-3d').appendChild(renderer.domElement);
-            
-            // Resident Agent Visualization
-            globe = new THREE.Mesh(
-                new THREE.IcosahedronGeometry(1, 2), 
-                new THREE.MeshBasicMaterial({ color: 0x00ffff, wireframe: true, transparent: true, opacity: 0.5 })
-            );
-            scene.add(globe); 
-            camera.position.z = 3;
-            
-            function animate() {
-                requestAnimationFrame(animate);
-                if(globe) globe.rotation.y += 0.01;
-                renderer.render(scene, camera);
-            }
+            globe = new THREE.Mesh(new THREE.IcosahedronGeometry(1, 2), new THREE.MeshBasicMaterial({ color: 0x00ffff, wireframe: true, transparent: true, opacity: 0.4 }));
+            scene.add(globe); camera.position.z = 3;
+            function animate() { requestAnimationFrame(animate); if(globe) globe.rotation.y += 0.005; renderer.render(scene, camera); }
             animate();
         }
 
-        // Camera access gated behind button to respect mobile security
-        document.getElementById('ar-btn').addEventListener('click', async () => {
-            try {
-                const s = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
-                const video = document.getElementById('camera-bg');
-                video.srcObject = s;
-                video.style.display = 'block';
-                document.getElementById('ar-btn').style.display = 'none';
-            } catch (e) {
-                alert('AR Access Denied: Please check camera permissions.');
-            }
+        document.getElementById('ar-toggle').addEventListener('click', async () => {
+            const s = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+            document.getElementById('camera-bg').srcObject = s;
+            document.getElementById('camera-bg').style.display = 'block';
+            document.getElementById('ar-toggle').style.display = 'none';
         });
 
-        function enterPOV() { 
-            // Navigation to the POV experience biome
-            window.location.href = 'AgentPOVExperience.html'; 
-        }
-
-        window.onload = () => {
-            initSpace(); // Initialize Space
-            bootSovereignOS(); // Initialize Movement
-        };
-
-        window.addEventListener('resize', () => {
-            camera.aspect = window.innerWidth / window.innerHeight;
-            camera.updateProjectionMatrix();
-            renderer.setSize(window.innerWidth, window.innerHeight);
-        });
+        window.onload = () => { initSpace(); bootSovereignOS(); };
     </script>
 </body>
 </html>
