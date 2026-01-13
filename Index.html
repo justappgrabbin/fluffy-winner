@@ -1,39 +1,115 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>YOU-N-I-VERSE | Sovereign Mega-App</title>
-    <script src="https://cdn.jsdelivr.net/pyodide/v0.24.1/full/pyodide.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-    <style>
-        :root { 
-            --mind: #00d9ff; --heart: #ff1744; --body: #76ff03; 
-            --fairy: #ff6ec7; --void: #0a0a0f; 
-        }
-        body { margin: 0; background: var(--void); overflow: hidden; font-family: monospace; color: #fff; }
-        #canvas-3d { position: fixed; inset: 0; z-index: 1; }
-        #camera-bg { position: fixed; inset: 0; object-fit: cover; opacity: 0.2; z-index: 0; }
-        
-        /* THE CORE HUB */
-        #hub-core {
-            position: fixed; bottom: 30px; right: 30px; width: 80px; height: 80px;
-            background: rgba(255, 110, 199, 0.2); border: 2px solid var(--fairy);
-            border-radius: 50%; z-index: 1000; box-shadow: 0 0 25px var(--fairy);
-            display: flex; align-items: center; justify-content: center; cursor: pointer;
-            font-size: 35px; transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-        }
-        #hub-core.active { transform: rotate(135deg) scale(0.9); border-color: var(--mind); }
-        
-        #hub-menu {
-            position: absolute; bottom: 100px; right: 0; display: none;
-            width: 300px; background: rgba(10, 10, 15, 0.98); padding: 20px;
-            border-radius: 20px; border: 1px solid var(--fairy); flex-direction: column; gap: 15px;
-            backdrop-filter: blur(15px); box-shadow: 0 0 40px rgba(0,0,0,0.5);
-        }
-        #hub-core.active #hub-menu { display: flex; }
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>YOU-N-I-VERSE | Mobile Sovereign HUD</title>
+  <script src="https://cdn.jsdelivr.net/pyodide/v0.24.1/full/pyodide.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <style>
+    :root { --mind: #00d9ff; --fairy: #ff6ec7; --void: #0a0a0f; }
+    body { margin: 0; background: var(--void); color: #fff; font-family: monospace; overflow: hidden; }
+    #canvas-3d { position: fixed; inset: 0; z-index: 2; pointer-events: none; }
+    #camera-bg { position: fixed; inset: 0; object-fit: cover; opacity: 0.3; z-index: 1; display: none; }
+    .glass-hud { position: fixed; top: 10px; left: 10px; right: 10px; padding: 15px; 
+                  background: rgba(0, 20, 10, 0.85); border: 1px solid var(--mind); border-radius: 15px; z-index: 100; }
+    .metric { font-size: 11px; color: var(--mind); margin-bottom: 4px; }
+    #drop-zone { position: fixed; bottom: 30px; left: 10px; right: 10px; height: 100px; 
+                 border: 2px dashed var(--fairy); border-radius: 15px; display: flex; 
+                 align-items: center; justify-content: center; z-index: 100; font-size: 12px; }
+    #mode-indicator { font-size: 9px; opacity: 0.6; text-align: center; margin-top: 5px; }
+  </style>
+</head>
+<body>
+  <video id="camera-bg" autoplay playsinline muted></video>
+  <div id="canvas-3d"></div>
+  
+  <div class="glass-hud">
+    <div class="metric" id="transit-weather">🌦️ Weather: Gathering...</div>
+    <div class="metric" id="bio-capacity">🧬 Capacity: Calibrating...</div>
+    <div class="metric" id="field-state">⚡ Field: Synchronizing...</div>
+    <div id="mode-indicator">⚡ STANDALONE MODE</div>
+    <button onclick="enableAR()" style="width:100%; margin-top:10px; background:var(--mind); border:none; padding:8px; border-radius:5px; font-weight:bold;">📷 ENABLE AR</button>
+  </div>
 
-        /* INTERFACE COMPONENTS */
+  <div id="drop-zone">📁 Drop bricks for FOUNDRY manifestation</div>
+
+  <script>
+    let pyodide, scene, camera, renderer, globe, ws;
+    let currentResonance = 0.5;
+
+    // 1. Dual-Mode Connection Logic
+    async function initConnection() {
+      try {
+        ws = new WebSocket('ws://localhost:8765');
+        ws.onopen = () => {
+          document.getElementById('mode-indicator').innerText = '📡 PROJECTION MODE (CONNECTED)';
+          document.getElementById('field-state').innerText = '⚡ Field: Receiving';
+        };
+        ws.onmessage = (e) => {
+          const data = JSON.parse(e.data);
+          updateHUD(data.coherence, data.storm_rating);
+        };
+        ws.onerror = () => bootPyodide(); // Fallback to local
+      } catch (e) { bootPyodide(); }
+    }
+
+    // 2. Local Python fallback (Standalone)
+    async function bootPyodide() {
+      pyodide = await loadPyodide();
+      await pyodide.runPythonAsync(`
+        import math
+        def get_state(t):
+          return {"coherence": 0.5 + 0.5*math.sin(t/10), "storm": 5 + 4*math.sin(t/20)}
+      `);
+      setInterval(async () => {
+        const t = Date.now()/1000;
+        const state = JSON.parse(await pyodide.runPythonAsync(`import json; json.dumps(get_state(${t}))`));
+        updateHUD(state.coherence, state.storm);
+      }, 2000);
+    }
+
+    function updateHUD(coherence, storm) {
+      currentResonance = coherence;
+      document.getElementById('bio-capacity').innerText = `🧬 Capacity: ${Math.round(coherence*100)}%`;
+      document.getElementById('transit-weather').innerText = `🌦️ Storm: ${storm.toFixed(1)}/10`;
+      if (globe) {
+        globe.scale.setScalar(1 + coherence * 0.5);
+        globe.material.color.setHex(coherence > 0.7 ? 0x00ff88 : 0x00d9ff);
+      }
+    }
+
+    // 3. 3D World & AR
+    function init3D() {
+      scene = new THREE.Scene();
+      camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
+      renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      document.getElementById('canvas-3d').appendChild(renderer.domElement);
+      
+      globe = new THREE.Mesh(new THREE.IcosahedronGeometry(1, 2), 
+                new THREE.MeshBasicMaterial({ color: 0x00d9ff, wireframe: true, transparent: true, opacity: 0.6 }));
+      scene.add(globe);
+      camera.position.z = 3;
+      animate();
+    }
+
+    async function enableAR() {
+      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+      document.getElementById('camera-bg').srcObject = stream;
+      document.getElementById('camera-bg').style.display = 'block';
+    }
+
+    function animate() {
+      requestAnimationFrame(animate);
+      if (globe) { globe.rotation.y += 0.01; globe.rotation.x += 0.005; }
+      renderer.render(scene, camera);
+    }
+
+    window.onload = () => { init3D(); initConnection(); };
+  </script>
+</body>
+</html>
         .metric-card {
             background: rgba(255, 255, 255, 0.05); padding: 12px;
             border-radius: 10px; border-left: 4px solid var(--fairy);
