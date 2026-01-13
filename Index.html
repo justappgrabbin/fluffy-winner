@@ -3,108 +3,131 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>🌀 Sovereign AI | Causal OS</title>
-    <script src="https://cdn.jsdelivr.net/pyodide/v0.24.1/full/pyodide.js"></script>
+    <title>🌀 Sovereign Causal Engine</title>
     <script src="https://d3js.org/d3.v7.min.js"></script>
     <style>
         :root { --mind: #00d9ff; --heart: #ff1744; --body: #76ff03; --void: #0a0a0f; }
-        body { margin: 0; background: var(--void); color: #fff; font-family: 'Courier New', monospace; display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
+        body { 
+            margin: 0; background: var(--void); color: #fff; 
+            font-family: 'Courier New', monospace; display: flex; flex-direction: column; 
+            height: 100vh; overflow: hidden; 
+        }
         
-        #graph-layer { flex-grow: 1; position: relative; background: radial-gradient(circle, #15151c, #0a0a0f); border-bottom: 1px solid var(--mind); }
-        #ai-supervisor { height: 55%; background: rgba(10, 10, 15, 0.98); padding: 15px; overflow-y: auto; z-index: 100; }
+        /* Layout Sections */
+        #physics-layer { height: 20%; background: #000; border-bottom: 1px solid var(--mind); position: relative; }
+        #graph-layer { flex-grow: 1; position: relative; background: radial-gradient(circle, #15151c, #0a0a0f); }
+        #foundry-layer { 
+            height: 45%; background: rgba(10, 10, 15, 0.98); 
+            border-top: 2px solid var(--mind); padding: 12px; 
+            overflow-y: auto; z-index: 100;
+        }
         
-        textarea, input, button { width: 100%; background: #1a1a26; border: 1px solid var(--mind); color: #fff; padding: 12px; margin: 5px 0; border-radius: 4px; box-sizing: border-box; font-size: 14px; }
-        button { background: var(--mind); color: #000; font-weight: bold; cursor: pointer; }
-        .status-bar { font-size: 10px; color: var(--mind); display: flex; justify-content: space-between; margin-bottom: 8px; }
-        .node { stroke: #fff; stroke-width: 1.5px; }
-        .link { stroke: #999; stroke-opacity: 0.3; }
-        .spark { stroke: var(--heart); stroke-width: 3px; stroke-dasharray: 4; animation: pulse 1s linear infinite; }
-        @keyframes pulse { to { stroke-dashoffset: -8; } }
+        canvas { width: 100%; height: 100%; touch-action: none; }
+        textarea, input, select { 
+            width: 100%; background: #1a1a26; border: 1px solid var(--mind); 
+            color: #fff; padding: 10px; margin: 5px 0; border-radius: 4px; box-sizing: border-box; font-size: 14px;
+        }
+        button { 
+            width: 100%; padding: 12px; background: var(--mind); color: #000;
+            border: none; font-weight: bold; margin: 5px 0; border-radius: 4px; cursor: pointer;
+        }
+        .stats { font-size: 10px; color: var(--mind); display: flex; justify-content: space-between; margin-bottom: 5px; }
+        .node { stroke: #fff; stroke-width: 1.5px; transition: r 0.3s; }
+        .link { stroke: #999; stroke-opacity: 0.3; stroke-width: 1px; }
     </style>
 </head>
 <body>
 
+    <div id="physics-layer"><canvas id="fieldCanvas"></canvas></div>
+
     <div id="graph-layer"><svg id="graphSvg" style="width:100%; height:100%;"></svg></div>
 
-    <div id="ai-supervisor">
-        <div class="status-bar">
-            <span>PYTHON: <b id="py-status">BOOTING...</b></span>
-            <span>LLAMA-WASM: <b id="ai-status">LOADING...</b></span>
+    <div id="foundry-layer">
+        <div class="stats">
+            <span>NODES: <b id="n-count">0</b></span>
+            <span>FIELD COHERENCE: <b id="coh-val">STABLE</b></span>
         </div>
+
+        <select id="backend-select">
+            <option value="internal">Internal Causal Engine</option>
+            <option value="pywhy">PyWhy (Causal Inference Mode)</option>
+            <option value="gguf">GGUF Interpreter (LLM Bridge)</option>
+        </select>
         
-        <textarea id="soc-stream" rows="2" placeholder="Stream: 'User Agency needs Causal Coherence'"></textarea>
-        <button id="forge-btn" onclick="processAndForge()">FORGE WITH AI SUPERVISION</button>
+        <textarea id="soc-input" rows="2" placeholder="Foundry: 'User needs Algorithm'"></textarea>
+        <button onclick="forgeLogic()">FORGE CAUSAL LINK</button>
 
         <div style="display:flex; gap:8px;">
-            <input type="number" id="dna-gate" placeholder="Gate (1-64)">
+            <input type="number" id="gate-in" placeholder="DNA GATE (1-64)">
             <button style="width:40%" onclick="mapDNA()">MAP DNA</button>
         </div>
         
-        <div id="llama-terminal" style="font-size:12px; margin-top:12px; color:var(--body); border-left: 2px solid var(--heart); padding-left: 10px; min-height: 50px;">
-            Awaiting Sovereign Instruction...
+        <button id="repair-btn" style="background:var(--heart); color:white; display:none;" onclick="autoRepair()">🔧 APPLY AUTO-REPAIR</button>
+        
+        <div id="advice" style="font-size:12px; margin-top:10px; color:var(--body); border-left: 2px solid var(--heart); padding-left: 10px;">
+            Awaiting input...
         </div>
     </div>
 
-    <script type="module">
-        import { LlamaModel } from "./llama-wasm.js";
+    <script>
+        // --- 1. THE BRAIN: CAUSAL DATA & DNA ---
+        const dnaMap = {
+            "26": { meaning: "Taming Power (Integrity)", codon: "CCC" },
+            "10": { meaning: "Self-Behavior (Treading)", codon: "GCC" },
+            "55": { meaning: "Abundance (Spirit)", codon: "GAG" }
+        }; // Full 64-gate map would be here; simplified for this build.
 
-        // --- 1. AI & PYTHON INITIALIZATION ---
-        let pyodide;
-        let model;
+        let nodes = [{ id: "Physics", layer: 0 }, { id: "User", layer: 4 }];
+        let links = [];
 
-        async function initEngines() {
-            // Init Python via Pyodide
-            pyodide = await loadPyodide();
-            document.getElementById('py-status').innerText = "STABLE";
-            
-            // Init Llama WASM
-            try {
-                model = await LlamaModel.load("tinyllama-q4.gguf");
-                document.getElementById('ai-status').innerText = "ONLINE";
-            } catch (e) {
-                document.getElementById('ai-status').innerText = "WASM ERROR";
-                console.error(e);
-            }
+        // --- 2. THE FIELD: PHYSICS SIMULATION ---
+        const canvas = document.getElementById("fieldCanvas");
+        const ctx = canvas.getContext("2d");
+        let ball = { x: 100, y: 30, dx: 2, dy: -2, r: 5 };
+        let paddle = { w: 80, h: 10, x: 50 };
+        let bricks = [];
+
+        function initField() {
+            canvas.width = canvas.offsetWidth; canvas.height = canvas.offsetHeight;
+            bricks = [];
+            for(let i=0; i<6; i++) bricks.push({ x: i * (canvas.width/6) + 5, y: 15, active: true });
         }
 
-        // Make functions globally accessible for UI buttons
-        window.processAndForge = async function() {
-            const stream = document.getElementById('soc-stream').value;
-            const terminal = document.getElementById('llama-terminal');
-            terminal.innerText = "AI Auditing Causal Flow...";
-            
-            // 1. Generate AI Insight using the WASM model
-            const aiResponse = await model.generate(`Task: Causal Architect. Input: "${stream}". Action: Audit for 8-layer coherence and suggest the missing link.`);
-            terminal.innerText = aiResponse;
+        function drawField() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.beginPath(); ctx.arc(ball.x, ball.y, ball.r, 0, Math.PI*2);
+            ctx.fillStyle = "#76ff03"; ctx.fill(); ctx.closePath();
+            ctx.fillStyle = "#00d9ff"; ctx.fillRect(paddle.x, canvas.height - paddle.h, paddle.w, paddle.h);
+            bricks.forEach(b => { if(b.active) { ctx.fillStyle = "#ff1744"; ctx.fillRect(b.x, b.y, 40, 10); } });
 
-            // 2. Simple Causal Link Forging
-            const parts = stream.toLowerCase().split(" needs ");
-            if (parts.length === 2) {
-                injectLink(parts[1].trim(), parts[0].trim());
+            if(ball.x + ball.dx > canvas.width - ball.r || ball.x + ball.dx < ball.r) ball.dx = -ball.dx;
+            if(ball.y + ball.dy < ball.r) ball.dy = -ball.dy;
+            else if(ball.y + ball.dy > canvas.height - ball.r) {
+                if(ball.x > paddle.x && ball.x < paddle.x + paddle.w) ball.dy = -ball.dy;
+                else { ball.y = 30; ball.x = canvas.width/2; }
             }
-        };
+            bricks.forEach(b => {
+                if(b.active && ball.x > b.x && ball.x < b.x+40 && ball.y > b.y && ball.y < b.y+10) {
+                    b.active = false; ball.dy = -ball.dy;
+                    injectNode("Discovery_" + Math.floor(Math.random()*100), 7);
+                }
+            });
+            ball.x += ball.dx; ball.y += ball.dy;
+            requestAnimationFrame(drawField);
+        }
 
-        window.mapDNA = function() {
-            const gate = document.getElementById('dna-gate').value;
-            injectNode("Gate_" + gate, 3, gate);
-        };
-
-        window.onload = initEngines;
-
-        // --- 2. GRAPH LOGIC (D3.js) ---
-        let nodes = [{ id: "Physics", layer: 0 }, { id: "Agency", layer: 4 }];
-        let links = [];
+        // --- 3. THE VISUALIZER: D3.js GRAPH ---
         const svg = d3.select("#graphSvg");
         let sim = d3.forceSimulation(nodes)
-            .force("link", d3.forceLink(links).id(d => d.id).distance(70))
+            .force("link", d3.forceLink(links).id(d => d.id).distance(60))
             .force("charge", d3.forceManyBody().strength(-150))
-            .force("center", d3.forceCenter(window.innerWidth / 2, window.innerHeight * 0.2));
+            .force("center", d3.forceCenter(window.innerWidth/2, (window.innerHeight*0.3)/2));
 
-        function renderGraph() {
+        function render() {
             svg.selectAll("*").remove();
             const l = svg.append("g").selectAll("line").data(links).enter().append("line").attr("class", "link");
             const n = svg.append("g").selectAll("circle").data(nodes).enter().append("circle")
-                .attr("r", 12).attr("fill", d => d3.interpolateTurbo(d.layer / 7))
+                .attr("r", 10).attr("fill", d => d3.interpolateTurbo(d.layer / 7)).attr("class", "node")
                 .call(d3.drag().on("start", dragStart).on("drag", dragging).on("end", dragEnd));
             
             sim.nodes(nodes); sim.force("link").links(links); sim.alpha(1).restart();
@@ -112,26 +135,67 @@
                 l.attr("x1", d => d.source.x).attr("y1", d => d.source.y).attr("x2", d => d.target.x).attr("y2", d => d.target.y);
                 n.attr("cx", d => d.x).attr("cy", d => d.y);
             });
+            document.getElementById('n-count').innerText = nodes.length;
+            checkCoherence();
         }
 
-        function injectNode(id, layer, gate = null) {
-            if (!nodes.find(n => n.id === id)) {
-                nodes.push({ id, layer, gate });
-                renderGraph();
+        // --- 4. THE FORGE: LOGIC & REPAIR ---
+        function injectNode(id, layer) {
+            if(!nodes.find(n => n.id === id)) { nodes.push({ id, layer }); render(); }
+        }
+
+        function forgeLogic() {
+            const text = document.getElementById('soc-input').value.toLowerCase();
+            const parts = text.split(" needs ");
+            if(parts.length === 2) {
+                const target = parts[0].trim(); const source = parts[1].trim();
+                injectNode(source, 2); injectNode(target, 5);
+                links.push({ source: source, target: target });
+                render();
             }
         }
 
-        function injectLink(source, target) {
-            injectNode(source, 2); injectNode(target, 5);
-            links.push({ source, target });
-            renderGraph();
+        function mapDNA() {
+            const g = document.getElementById('gate-in').value;
+            if(dnaMap[g]) { injectNode(dnaMap[g].meaning, 3); }
         }
 
+        function checkCoherence() {
+            const violations = links.filter(l => {
+                const s = nodes.find(n => n.id === (l.source.id || l.source));
+                const t = nodes.find(n => n.id === (l.target.id || l.target));
+                return s && t && s.layer > t.layer;
+            });
+
+            const cohVal = document.getElementById('coh-val');
+            const repairBtn = document.getElementById('repair-btn');
+            if(violations.length > 0) {
+                cohVal.innerText = "INCOHERENT"; cohVal.style.color = "var(--heart)";
+                repairBtn.style.display = "block";
+                document.getElementById('advice').innerText = "⚠️ Violation: High-layer Intent attempting to influence Physics directly. Suggest mechanism bridge.";
+            } else {
+                cohVal.innerText = "STABLE"; cohVal.style.color = "var(--body)";
+                repairBtn.style.display = "none";
+                document.getElementById('advice').innerText = "✨ Field is coherent.";
+            }
+        }
+
+        function autoRepair() {
+            links = links.filter(l => {
+                const s = nodes.find(n => n.id === (l.source.id || l.source));
+                const t = nodes.find(n => n.id === (l.target.id || l.target));
+                return s.layer <= t.layer;
+            });
+            render();
+        }
+
+        // --- 5. TOUCH & CONTROLS ---
+        window.addEventListener("touchmove", (e) => { paddle.x = e.touches[0].clientX - paddle.w/2; e.preventDefault(); }, {passive: false});
         function dragStart(e, d) { if (!e.active) sim.alphaTarget(0.3).restart(); d.fx = d.x; d.fy = d.y; }
         function dragging(e, d) { d.fx = e.x; d.fy = e.y; }
         function dragEnd(e, d) { if (!e.active) sim.alphaTarget(0); d.fx = null; d.fy = null; }
 
-        renderGraph();
+        window.onload = () => { initField(); drawField(); render(); };
     </script>
 </body>
 </html>
