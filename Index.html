@@ -1,218 +1,137 @@
-https://github.com/justappgrabbin/fluffy-winner.git  <script>
-    let pyodide, scene, camera, renderer, globe, ws;
-    let currentResonance = 0.5;
-
-    // 1. Dual-Mode Connection Logic
-    async function initConnection() {
-      try {
-        ws = new WebSocket('ws://localhost:8765');
-        ws.onopen = () => {
-          document.getElementById('mode-indicator').innerText = '📡 PROJECTION MODE (CONNECTED)';
-          document.getElementById('field-state').innerText = '⚡ Field: Receiving';
-        };
-        ws.onmessage = (e) => {
-          const data = JSON.parse(e.data);
-          updateHUD(data.coherence, data.storm_rating);
-        };
-        ws.onerror = () => bootPyodide(); // Fallback to local
-      } catch (e) { bootPyodide(); }
-    }
-
-    // 2. Local Python fallback (Standalone)
-    async function bootPyodide() {
-      pyodide = await loadPyodide();
-      await pyodide.runPythonAsync(`
-        import math
-        def get_state(t):
-          return {"coherence": 0.5 + 0.5*math.sin(t/10), "storm": 5 + 4*math.sin(t/20)}
-      `);
-      setInterval(async () => {
-        const t = Date.now()/1000;
-        const state = JSON.parse(await pyodide.runPythonAsync(`import json; json.dumps(get_state(${t}))`));
-        updateHUD(state.coherence, state.storm);
-      }, 2000);
-    }
-
-    function updateHUD(coherence, storm) {
-      currentResonance = coherence;
-      document.getElementById('bio-capacity').innerText = `🧬 Capacity: ${Math.round(coherence*100)}%`;
-      document.getElementById('transit-weather').innerText = `🌦️ Storm: ${storm.toFixed(1)}/10`;
-      if (globe) {
-        globe.scale.setScalar(1 + coherence * 0.5);
-        globe.material.color.setHex(coherence > 0.7 ? 0x00ff88 : 0x00d9ff);
-      }
-    }
-
-    // 3. 3D World & AR
-    function init3D() {
-      scene = new THREE.Scene();
-      camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
-      renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
-      renderer.setSize(window.innerWidth, window.innerHeight);
-      document.getElementById('canvas-3d').appendChild(renderer.domElement);
-      
-      globe = new THREE.Mesh(new THREE.IcosahedronGeometry(1, 2), 
-                new THREE.MeshBasicMaterial({ color: 0x00d9ff, wireframe: true, transparent: true, opacity: 0.6 }));
-      scene.add(globe);
-      camera.position.z = 3;
-      animate();
-    }
-
-    async function enableAR() {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
-      document.getElementById('camera-bg').srcObject = stream;
-      document.getElementById('camera-bg').style.display = 'block';
-    }
-
-    function animate() {
-      requestAnimationFrame(animate);
-      if (globe) { globe.rotation.y += 0.01; globe.rotation.x += 0.005; }
-      renderer.render(scene, camera);
-    }
-
-    window.onload = () => { init3D(); initConnection(); };
-  </script>
-</body>
-</html>
-        .metric-card {
-            background: rgba(255, 255, 255, 0.05); padding: 12px;
-            border-radius: 10px; border-left: 4px solid var(--fairy);
-        }
-        .grandmother-panel {
-            position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
-            width: 90%; max-width: 400px; background: var(--void); border: 2px solid var(--fairy);
-            border-radius: 25px; padding: 30px; z-index: 2000; display: none;
-            box-shadow: 0 0 100px var(--fairy);
-        }
-        .grandmother-panel.active { display: block; }
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>🌀 Sovereign AI | Causal OS</title>
+    <script src="https://cdn.jsdelivr.net/pyodide/v0.24.1/full/pyodide.js"></script>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <style>
+        :root { --mind: #00d9ff; --heart: #ff1744; --body: #76ff03; --void: #0a0a0f; }
+        body { margin: 0; background: var(--void); color: #fff; font-family: 'Courier New', monospace; display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
         
-        button {
-            width: 100%; padding: 15px; border-radius: 12px; border: none;
-            background: var(--fairy); color: var(--void); font-weight: bold;
-            cursor: pointer; transition: 0.3s; text-transform: uppercase;
-        }
-        button:hover { background: var(--mind); transform: translateY(-2px); }
+        #graph-layer { flex-grow: 1; position: relative; background: radial-gradient(circle, #15151c, #0a0a0f); border-bottom: 1px solid var(--mind); }
+        #ai-supervisor { height: 55%; background: rgba(10, 10, 15, 0.98); padding: 15px; overflow-y: auto; z-index: 100; }
         
-        input, textarea {
-            width: 100%; background: #111; border: 1px solid #333; color: #fff;
-            padding: 12px; border-radius: 8px; margin-top: 10px; font-family: monospace;
-        }
+        textarea, input, button { width: 100%; background: #1a1a26; border: 1px solid var(--mind); color: #fff; padding: 12px; margin: 5px 0; border-radius: 4px; box-sizing: border-box; font-size: 14px; }
+        button { background: var(--mind); color: #000; font-weight: bold; cursor: pointer; }
+        .status-bar { font-size: 10px; color: var(--mind); display: flex; justify-content: space-between; margin-bottom: 8px; }
+        .node { stroke: #fff; stroke-width: 1.5px; }
+        .link { stroke: #999; stroke-opacity: 0.3; }
+        .spark { stroke: var(--heart); stroke-width: 3px; stroke-dasharray: 4; animation: pulse 1s linear infinite; }
+        @keyframes pulse { to { stroke-dashoffset: -8; } }
     </style>
 </head>
 <body>
-    <video id="camera-bg" autoplay playsinline muted></video>
-    <div id="canvas-3d"></div>
 
-    <div id="hub-core" onclick="this.classList.toggle('active')">
-        🌀
-        <div id="hub-menu" onclick="event.stopPropagation()">
-            <div style="text-align:center; font-weight:bold; color:var(--fairy)">SYSTEM STATUS</div>
-            <div class="metric-card" id="mode-display">📡 STANDALONE MODE</div>
-            <div class="metric-card" id="coherence-display">🧬 COHERENCE: --</div>
-            <div class="metric-card" id="storm-display">⛈️ STORM: --</div>
-            <button onclick="openGrandmother()">🧚‍♀️ CONSULT ADVISOR</button>
-            <button style="background:var(--mind)" onclick="initiateHandshake()">📞 SOVEREIGN CALL</button>
+    <div id="graph-layer"><svg id="graphSvg" style="width:100%; height:100%;"></svg></div>
+
+    <div id="ai-supervisor">
+        <div class="status-bar">
+            <span>PYTHON: <b id="py-status">BOOTING...</b></span>
+            <span>LLAMA-WASM: <b id="ai-status">LOADING...</b></span>
+        </div>
+        
+        <textarea id="soc-stream" rows="2" placeholder="Stream: 'User Agency needs Causal Coherence'"></textarea>
+        <button id="forge-btn" onclick="processAndForge()">FORGE WITH AI SUPERVISION</button>
+
+        <div style="display:flex; gap:8px;">
+            <input type="number" id="dna-gate" placeholder="Gate (1-64)">
+            <button style="width:40%" onclick="mapDNA()">MAP DNA</button>
+        </div>
+        
+        <div id="llama-terminal" style="font-size:12px; margin-top:12px; color:var(--body); border-left: 2px solid var(--heart); padding-left: 10px; min-height: 50px;">
+            Awaiting Sovereign Instruction...
         </div>
     </div>
 
-    <div id="grandmother-panel" class="grandmother-panel">
-        <div style="text-align:right; cursor:pointer;" onclick="closeGrandmother()">✕</div>
-        <h2 style="color:var(--fairy); text-align:center;">FairyGanMatter Wisdom</h2>
-        <textarea id="question-input" placeholder="What does the field suggest regarding..."></textarea>
-        <button onclick="askGrandmother()" style="margin-top:20px;">🔮 ANALYZE FIELD</button>
-        <div id="advice-output" style="margin-top:20px; line-height:1.6; font-size:14px;"></div>
-    </div>
+    <script type="module">
+        import { LlamaModel } from "./llama-wasm.js";
 
-    <script>
-        // CORE STATE
-        let pyodide, ws, scene, camera, renderer, globe;
-        let appState = { coherence: 0, storm: 0, mode: 'standalone' };
+        // --- 1. AI & PYTHON INITIALIZATION ---
+        let pyodide;
+        let model;
 
-        // 1. INITIALIZE 3D PROJECTOR
-        function initThree() {
-            scene = new THREE.Scene();
-            camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
-            renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
-            renderer.setSize(window.innerWidth, window.innerHeight);
-            document.getElementById('canvas-3d').appendChild(renderer.domElement);
-
-            const geo = new THREE.IcosahedronGeometry(1, 4);
-            const mat = new THREE.MeshBasicMaterial({ color: 0x00d9ff, wireframe: true, transparent: true, opacity: 0.4 });
-            globe = new THREE.Mesh(geo, mat);
-            scene.add(globe);
-            camera.position.z = 3;
-            
-            animate();
-        }
-
-        function animate() {
-            requestAnimationFrame(animate);
-            globe.rotation.y += 0.005;
-            let pulse = 1 + (Math.sin(Date.now() * 0.002) * 0.1 * appState.coherence);
-            globe.scale.set(pulse, pulse, pulse);
-            renderer.render(scene, camera);
-        }
-
-        // 2. INITIALIZE PYTHON ENGINE (STANDALONE)
-        async function initEngine() {
+        async function initEngines() {
+            // Init Python via Pyodide
             pyodide = await loadPyodide();
-            await pyodide.runPythonAsync(`
-import json, math, random
-from datetime import datetime
-
-class MegaAppEngine:
-    def get_state(self):
-        t = datetime.now().timestamp()
-        coherence = 0.5 + 0.4 * math.sin(t/10)
-        storm = 5 + 4 * math.cos(t/15)
-        return {"coherence": coherence, "storm": storm}
-    
-    def get_wisdom(self, question, state):
-        if state['coherence'] > 0.7:
-            return "The field is crystalline. Your intent is mirrored by the geometry of the moment. Proceed with grace."
-        return "The waves are choppy, dear one. Anchor into your breath and wait for the transit to clear."
-
-engine = MegaAppEngine()
-            `);
-            startStandaloneLoop();
+            document.getElementById('py-status').innerText = "STABLE";
+            
+            // Init Llama WASM
+            try {
+                model = await LlamaModel.load("tinyllama-q4.gguf");
+                document.getElementById('ai-status').innerText = "ONLINE";
+            } catch (e) {
+                document.getElementById('ai-status').innerText = "WASM ERROR";
+                console.error(e);
+            }
         }
 
-        function startStandaloneLoop() {
-            setInterval(async () => {
-                if(appState.mode === 'standalone') {
-                    const data = JSON.parse(await pyodide.runPythonAsync("json.dumps(engine.get_state())"));
-                    updateUI(data);
-                }
-            }, 2000);
-        }
+        // Make functions globally accessible for UI buttons
+        window.processAndForge = async function() {
+            const stream = document.getElementById('soc-stream').value;
+            const terminal = document.getElementById('llama-terminal');
+            terminal.innerText = "AI Auditing Causal Flow...";
+            
+            // 1. Generate AI Insight using the WASM model
+            const aiResponse = await model.generate(`Task: Causal Architect. Input: "${stream}". Action: Audit for 8-layer coherence and suggest the missing link.`);
+            terminal.innerText = aiResponse;
 
-        // 3. UI & INTERACTION
-        function updateUI(data) {
-            appState.coherence = data.coherence;
-            appState.storm = data.storm;
-            document.getElementById('coherence-display').textContent = `🧬 COHERENCE: ${(data.coherence*100).toFixed(0)}%`;
-            document.getElementById('storm-display').textContent = `⛈️ STORM: ${data.storm.toFixed(1)}/10`;
-            globe.material.color.setHex(data.coherence > 0.6 ? 0x00d9ff : 0xff1744);
-        }
-
-        function openGrandmother() { document.getElementById('grandmother-panel').classList.add('active'); }
-        function closeGrandmother() { document.getElementById('grandmother-panel').classList.remove('active'); }
-
-        async function askGrandmother() {
-            const q = document.getElementById('question-input').value;
-            const wisdom = await pyodide.runPythonAsync(`engine.get_wisdom("${q}", {"coherence": ${appState.coherence}})`);
-            document.getElementById('advice-output').innerHTML = `<span style="color:var(--fairy)">🧚‍♀️ Advice:</span> ${wisdom}`;
-        }
-
-        // 4. BOOT
-        window.onload = () => {
-            initThree();
-            initEngine();
-            // Optional: Start Camera
-            navigator.mediaDevices.getUserMedia({video: {facingMode:'environment'}}).then(s => {
-                document.getElementById('camera-bg').srcObject = s;
-            }).catch(e => console.log("AR Mode Unavailable"));
+            // 2. Simple Causal Link Forging
+            const parts = stream.toLowerCase().split(" needs ");
+            if (parts.length === 2) {
+                injectLink(parts[1].trim(), parts[0].trim());
+            }
         };
+
+        window.mapDNA = function() {
+            const gate = document.getElementById('dna-gate').value;
+            injectNode("Gate_" + gate, 3, gate);
+        };
+
+        window.onload = initEngines;
+
+        // --- 2. GRAPH LOGIC (D3.js) ---
+        let nodes = [{ id: "Physics", layer: 0 }, { id: "Agency", layer: 4 }];
+        let links = [];
+        const svg = d3.select("#graphSvg");
+        let sim = d3.forceSimulation(nodes)
+            .force("link", d3.forceLink(links).id(d => d.id).distance(70))
+            .force("charge", d3.forceManyBody().strength(-150))
+            .force("center", d3.forceCenter(window.innerWidth / 2, window.innerHeight * 0.2));
+
+        function renderGraph() {
+            svg.selectAll("*").remove();
+            const l = svg.append("g").selectAll("line").data(links).enter().append("line").attr("class", "link");
+            const n = svg.append("g").selectAll("circle").data(nodes).enter().append("circle")
+                .attr("r", 12).attr("fill", d => d3.interpolateTurbo(d.layer / 7))
+                .call(d3.drag().on("start", dragStart).on("drag", dragging).on("end", dragEnd));
+            
+            sim.nodes(nodes); sim.force("link").links(links); sim.alpha(1).restart();
+            sim.on("tick", () => {
+                l.attr("x1", d => d.source.x).attr("y1", d => d.source.y).attr("x2", d => d.target.x).attr("y2", d => d.target.y);
+                n.attr("cx", d => d.x).attr("cy", d => d.y);
+            });
+        }
+
+        function injectNode(id, layer, gate = null) {
+            if (!nodes.find(n => n.id === id)) {
+                nodes.push({ id, layer, gate });
+                renderGraph();
+            }
+        }
+
+        function injectLink(source, target) {
+            injectNode(source, 2); injectNode(target, 5);
+            links.push({ source, target });
+            renderGraph();
+        }
+
+        function dragStart(e, d) { if (!e.active) sim.alphaTarget(0.3).restart(); d.fx = d.x; d.fy = d.y; }
+        function dragging(e, d) { d.fx = e.x; d.fy = e.y; }
+        function dragEnd(e, d) { if (!e.active) sim.alphaTarget(0); d.fx = null; d.fy = null; }
+
+        renderGraph();
     </script>
 </body>
 </html>
