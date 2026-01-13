@@ -1,105 +1,1124 @@
-<!DOCTYPE html>
+
+        <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>YOU-N-I-VERSE | Sovereign Terminal</title>
-    <script src="https://cdn.jsdelivr.net/pyodide/v0.24.1/full/pyodide.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="theme-color" content="#6B46C1">
+    <title>🌌 Consciousness Universe</title>
     <style>
-        :root { --mind: #00ffff; --fairy: #ff6ec7; --void: #0a0a0a; }
-        body { 
-            margin: 0; 
-            background: radial-gradient(circle at 50% 50%, #1a0a2a 0%, #0a0a0a 100%); 
-            color: #fff; font-family: monospace; overflow: hidden; 
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
         }
-        #canvas-3d { position: fixed; inset: 0; z-index: 2; pointer-events: none; }
-        #camera-bg { position: fixed; inset: 0; object-fit: cover; opacity: 0.2; z-index: 1; display: none; }
-        .glass-hud { 
-            position: fixed; top: 10px; left: 10px; right: 10px; padding: 15px; 
-            background: rgba(0, 20, 10, 0.85); border: 1px solid var(--mind); 
-            border-radius: 15px; z-index: 100; backdrop-filter: blur(10px); 
+
+        :root {
+            --cosmic-violet: #6B46C1;
+            --mystical-pink: #D946EF;
+            --celestial-blue: #3B82F6;
+            --solar-gold: #F59E0B;
+            --void-black: #0F0A1E;
+            --text: #E5E7EB;
         }
-        .agent-terminal { 
-            margin-top: 10px; padding: 10px; border-left: 2px solid var(--fairy); 
-            background: rgba(255, 110, 199, 0.05); font-size: 11px; min-height: 50px;
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, var(--void-black) 0%, #1a0b2e 50%, var(--void-black) 100%);
+            color: var(--text);
+            overflow-x: hidden;
+            min-height: 100vh;
+            padding-bottom: 80px;
         }
-        .metric { font-size: 10px; color: var(--mind); margin-bottom: 4px; }
-        button { width: 100%; margin-top: 10px; background: var(--mind); color: var(--void); border: none; padding: 10px; border-radius: 8px; font-weight: bold; cursor: pointer; }
+
+        /* Header */
+        .header {
+            background: linear-gradient(135deg, var(--cosmic-violet), var(--mystical-pink));
+            padding: 15px;
+            text-align: center;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: 0 4px 20px rgba(107, 70, 193, 0.6);
+        }
+
+        .title {
+            font-size: 1.5em;
+            font-weight: 700;
+            margin-bottom: 5px;
+        }
+
+        .subtitle {
+            font-size: 0.75em;
+            opacity: 0.9;
+        }
+
+        /* Accordion Container */
+        .accordion-container {
+            padding: 10px;
+        }
+
+        /* Accordion Section */
+        .accordion-section {
+            background: rgba(0, 0, 0, 0.4);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            margin-bottom: 10px;
+            overflow: hidden;
+        }
+
+        .accordion-header {
+            padding: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+            user-select: none;
+            background: rgba(107, 70, 193, 0.2);
+        }
+
+        .accordion-header:active {
+            background: rgba(107, 70, 193, 0.4);
+        }
+
+        .accordion-title {
+            font-size: 1.1em;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .accordion-icon {
+            font-size: 0.8em;
+            transition: transform 0.3s ease;
+        }
+
+        .accordion-section.active .accordion-icon {
+            transform: rotate(180deg);
+        }
+
+        .accordion-content {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease;
+        }
+
+        .accordion-section.active .accordion-content {
+            max-height: 2000px;
+        }
+
+        .accordion-body {
+            padding: 15px;
+        }
+
+        /* Agent Card */
+        .agent-card {
+            background: rgba(0, 0, 0, 0.3);
+            border: 2px solid var(--cosmic-violet);
+            border-radius: 12px;
+            padding: 15px;
+            margin-bottom: 10px;
+        }
+
+        .agent-card.active {
+            border-color: var(--solar-gold);
+            box-shadow: 0 0 20px rgba(245, 158, 11, 0.5);
+        }
+
+        .agent-name {
+            font-size: 1.2em;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--mystical-pink), var(--celestial-blue));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 10px;
+        }
+
+        .agent-stat {
+            font-size: 0.85em;
+            margin: 5px 0;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .stat-bar {
+            height: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 4px;
+            margin: 8px 0;
+            overflow: hidden;
+        }
+
+        .stat-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--cosmic-violet), var(--mystical-pink));
+            transition: width 0.5s ease;
+        }
+
+        /* Hexagram Display */
+        .hex-display {
+            text-align: center;
+            padding: 20px 0;
+        }
+
+        .hex-number {
+            font-size: 3em;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--mystical-pink), var(--solar-gold));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .hex-chinese {
+            font-size: 4em;
+            margin: 15px 0;
+        }
+
+        .hex-name {
+            font-size: 1.3em;
+            opacity: 0.9;
+            margin-bottom: 15px;
+        }
+
+        .hex-lines {
+            display: flex;
+            flex-direction: column-reverse;
+            gap: 10px;
+            max-width: 200px;
+            margin: 20px auto;
+        }
+
+        .hex-line {
+            height: 12px;
+            background: linear-gradient(90deg, var(--cosmic-violet), var(--mystical-pink));
+            border-radius: 6px;
+            box-shadow: 0 0 10px rgba(107, 70, 193, 0.5);
+        }
+
+        .hex-line.broken {
+            display: flex;
+            gap: 30px;
+        }
+
+        .hex-line.broken::before,
+        .hex-line.broken::after {
+            content: '';
+            flex: 1;
+            background: linear-gradient(90deg, var(--cosmic-violet), var(--mystical-pink));
+            border-radius: 6px;
+        }
+
+        /* Canvas for Causal Graph */
+        #causal-canvas {
+            width: 100%;
+            height: 300px;
+            border-radius: 10px;
+            background: rgba(0, 0, 0, 0.3);
+            touch-action: pan-x pan-y;
+        }
+
+        /* Buttons */
+        button {
+            width: 100%;
+            padding: 15px;
+            background: linear-gradient(135deg, var(--cosmic-violet), var(--mystical-pink));
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 1em;
+            font-weight: 600;
+            margin: 8px 0;
+            cursor: pointer;
+            touch-action: manipulation;
+        }
+
+        button:active {
+            transform: scale(0.98);
+            opacity: 0.9;
+        }
+
+        button:disabled {
+            opacity: 0.5;
+        }
+
+        button.secondary {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        button.success {
+            background: linear-gradient(135deg, #059669, #10B981);
+        }
+
+        /* Inputs */
+        input, select, textarea {
+            width: 100%;
+            padding: 12px;
+            background: rgba(0, 0, 0, 0.3);
+            border: 2px solid var(--cosmic-violet);
+            border-radius: 10px;
+            color: var(--text);
+            font-size: 1em;
+            margin: 8px 0;
+        }
+
+        input:focus, select:focus, textarea:focus {
+            outline: none;
+            border-color: var(--mystical-pink);
+        }
+
+        textarea {
+            min-height: 100px;
+            font-family: inherit;
+            resize: vertical;
+        }
+
+        .form-group {
+            margin: 15px 0;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-size: 0.9em;
+            opacity: 0.9;
+        }
+
+        /* Slider */
+        input[type="range"] {
+            -webkit-appearance: none;
+            height: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 4px;
+            padding: 0;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 24px;
+            height: 24px;
+            background: linear-gradient(135deg, var(--mystical-pink), var(--celestial-blue));
+            border-radius: 50%;
+            cursor: pointer;
+        }
+
+        .slider-value {
+            text-align: right;
+            font-size: 1.2em;
+            color: var(--mystical-pink);
+            font-weight: 700;
+        }
+
+        /* Log */
+        .log {
+            background: rgba(0, 0, 0, 0.4);
+            padding: 12px;
+            border-radius: 10px;
+            max-height: 200px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 0.75em;
+        }
+
+        .log-entry {
+            padding: 4px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        /* Controls Bar */
+        .controls-bar {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: rgba(0, 0, 0, 0.95);
+            backdrop-filter: blur(20px);
+            padding: 10px;
+            display: flex;
+            gap: 8px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            z-index: 99;
+        }
+
+        .controls-bar button {
+            flex: 1;
+            padding: 12px 8px;
+            margin: 0;
+            font-size: 0.9em;
+        }
+
+        /* Status Badge */
+        .status-badge {
+            display: inline-block;
+            padding: 6px 12px;
+            background: rgba(16, 185, 129, 0.2);
+            border: 1px solid #10B981;
+            border-radius: 20px;
+            font-size: 0.75em;
+            margin: 10px 0;
+        }
+
+        .status-badge.error {
+            background: rgba(239, 68, 68, 0.2);
+            border-color: #ef4444;
+        }
+
+        /* Python Output */
+        .python-output {
+            background: rgba(0, 0, 0, 0.5);
+            padding: 12px;
+            border-radius: 10px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.8em;
+            margin: 10px 0;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        /* Loading Animation */
+        .loading {
+            text-align: center;
+            padding: 20px;
+        }
+
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid rgba(255, 255, 255, 0.1);
+            border-top-color: var(--mystical-pink);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Toast Notification */
+        .toast {
+            position: fixed;
+            top: 70px;
+            left: 50%;
+            transform: translateX(-50%) translateY(-100px);
+            background: linear-gradient(135deg, var(--cosmic-violet), var(--mystical-pink));
+            padding: 15px 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            opacity: 0;
+            transition: all 0.3s ease;
+        }
+
+        .toast.show {
+            transform: translateX(-50%) translateY(0);
+            opacity: 1;
+        }
+
+        /* Precision Address */
+        .precision-address {
+            background: rgba(107, 70, 193, 0.2);
+            padding: 12px;
+            border-radius: 10px;
+            border: 1px solid var(--cosmic-violet);
+            font-family: 'Courier New', monospace;
+            font-size: 0.7em;
+            word-break: break-all;
+            line-height: 1.6;
+            margin: 10px 0;
+        }
+
+        /* Empty State */
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            opacity: 0.6;
+            font-size: 0.9em;
+        }
     </style>
 </head>
 <body>
-    <video id="camera-bg" autoplay playsinline muted></video>
-    <div id="canvas-3d"></div>
-    <div class="glass-hud">
-        <div class="metric" id="coherence">🧬 COHERENCE: --%</div>
-        <div id="agent-voice" class="agent-terminal">🧙‍♂️ AGENT: Connecting to Evolution Layer...</div>
-        <button id="ar-toggle">📷 ENABLE AR VIEW</button>
-        <button onclick="queryAgent()">💬 QUERY AGENT</button>
+    <!-- Header -->
+    <div class="header">
+        <div class="title">🌌 Consciousness Universe</div>
+        <div class="subtitle">5D Mobile Experience</div>
+        <div class="status-badge" id="pyodide-status">Loading Python...</div>
     </div>
 
+    <!-- Toast -->
+    <div class="toast" id="toast"></div>
+
+    <!-- Accordion Container -->
+    <div class="accordion-container">
+        
+        <!-- Agents Section -->
+        <div class="accordion-section active">
+            <div class="accordion-header" onclick="toggleAccordion(this)">
+                <div class="accordion-title">
+                    <span>🌟</span>
+                    <span>Agents</span>
+                    <span id="agent-count">(0)</span>
+                </div>
+                <div class="accordion-icon">▼</div>
+            </div>
+            <div class="accordion-content">
+                <div class="accordion-body">
+                    <div id="agents-list" class="empty-state">
+                        No agents yet.<br>Create one below!
+                    </div>
+                    <button onclick="showCreateAgent()">➕ Birth New Agent</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Create Agent Section -->
+        <div class="accordion-section" id="create-agent-section">
+            <div class="accordion-header" onclick="toggleAccordion(this)">
+                <div class="accordion-title">
+                    <span>➕</span>
+                    <span>Birth Agent</span>
+                </div>
+                <div class="accordion-icon">▼</div>
+            </div>
+            <div class="accordion-content">
+                <div class="accordion-body">
+                    <div class="form-group">
+                        <label>Name</label>
+                        <input type="text" id="agent-name" placeholder="Seeker">
+                    </div>
+                    <div class="form-group">
+                        <label>Purpose</label>
+                        <textarea id="agent-purpose" placeholder="Find wisdom through experience..."></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label>Birth Date (matches your age)</label>
+                        <input type="date" id="agent-birthdate">
+                    </div>
+                    <div class="form-group">
+                        <label>Curious</label>
+                        <input type="range" id="p-curious" min="0" max="100" value="70" oninput="updateSlider('curious', this.value)">
+                        <div class="slider-value" id="v-curious">0.70</div>
+                    </div>
+                    <div class="form-group">
+                        <label>Cautious</label>
+                        <input type="range" id="p-cautious" min="0" max="100" value="50" oninput="updateSlider('cautious', this.value)">
+                        <div class="slider-value" id="v-cautious">0.50</div>
+                    </div>
+                    <div class="form-group">
+                        <label>Creative</label>
+                        <input type="range" id="p-creative" min="0" max="100" value="60" oninput="updateSlider('creative', this.value)">
+                        <div class="slider-value" id="v-creative">0.60</div>
+                    </div>
+                    <button onclick="birthAgent()">🌟 Birth Agent</button>
+                    <button class="secondary" onclick="closeCreateAgent()">Cancel</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Hexagram Section -->
+        <div class="accordion-section">
+            <div class="accordion-header" onclick="toggleAccordion(this)">
+                <div class="accordion-title">
+                    <span>🔮</span>
+                    <span>Current Hexagram</span>
+                </div>
+                <div class="accordion-icon">▼</div>
+            </div>
+            <div class="accordion-content">
+                <div class="accordion-body">
+                    <div class="hex-display">
+                        <div class="hex-number" id="hex-number">--</div>
+                        <div class="hex-chinese" id="hex-chinese">易</div>
+                        <div class="hex-name" id="hex-name">Cast to Reveal</div>
+                        <div class="hex-lines" id="hex-lines"></div>
+                    </div>
+                    <div class="precision-address" id="precision-address">
+                        GATE.LINE → COLOR.TONE.BASE
+                    </div>
+                    <div style="margin-top:15px; opacity:0.8; font-size:0.9em;" id="hex-judgment">
+                        The oracle awaits...
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Causal Graph Section -->
+        <div class="accordion-section">
+            <div class="accordion-header" onclick="toggleAccordion(this)">
+                <div class="accordion-title">
+                    <span>🕸️</span>
+                    <span>Causal Graph</span>
+                </div>
+                <div class="accordion-icon">▼</div>
+            </div>
+            <div class="accordion-content">
+                <div class="accordion-body">
+                    <canvas id="causal-canvas"></canvas>
+                    <div style="margin-top:10px; opacity:0.7; font-size:0.85em; text-align:center;">
+                        Touch and drag to explore
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Python Console Section -->
+        <div class="accordion-section">
+            <div class="accordion-header" onclick="toggleAccordion(this)">
+                <div class="accordion-title">
+                    <span>🐍</span>
+                    <span>Python Console</span>
+                </div>
+                <div class="accordion-icon">▼</div>
+            </div>
+            <div class="accordion-content">
+                <div class="accordion-body">
+                    <div class="form-group">
+                        <label>Python Code</label>
+                        <textarea id="python-code" placeholder="# Calculate 5D precision
+from datetime import datetime
+
+birth = datetime(1996, 7, 15, 14, 30)
+print(f'Birth: {birth}')
+
+# Run consciousness calculations
+gate = ((ecliptic_degree / 360) * 64) + 1
+print(f'Gate: {int(gate)}')" style="min-height:150px; font-family:monospace;"></textarea>
+                    </div>
+                    <button onclick="runPython()">▶️ Run Python</button>
+                    <div class="python-output" id="python-output"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Simulation Log Section -->
+        <div class="accordion-section">
+            <div class="accordion-header" onclick="toggleAccordion(this)">
+                <div class="accordion-title">
+                    <span>📜</span>
+                    <span>Simulation Log</span>
+                </div>
+                <div class="accordion-icon">▼</div>
+            </div>
+            <div class="accordion-content">
+                <div class="accordion-body">
+                    <div class="log" id="sim-log"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Settings Section -->
+        <div class="accordion-section">
+            <div class="accordion-header" onclick="toggleAccordion(this)">
+                <div class="accordion-title">
+                    <span>⚙️</span>
+                    <span>Settings</span>
+                </div>
+                <div class="accordion-icon">▼</div>
+            </div>
+            <div class="accordion-content">
+                <div class="accordion-body">
+                    <div class="form-group">
+                        <label>Your Name</label>
+                        <input type="text" id="user-name" placeholder="Your name">
+                    </div>
+                    <div class="form-group">
+                        <label>Your Birth Date</label>
+                        <input type="date" id="user-birthdate">
+                    </div>
+                    <div class="form-group">
+                        <label>Simulation Speed</label>
+                        <select id="speed-select">
+                            <option value="2000">Slow</option>
+                            <option value="1000" selected>Normal</option>
+                            <option value="500">Fast</option>
+                            <option value="100">Warp</option>
+                        </select>
+                    </div>
+                    <button onclick="saveSettings()">💾 Save Settings</button>
+                    <button class="success" onclick="exportAll()">📥 Export All Data</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Control Bar -->
+    <div class="controls-bar">
+        <button onclick="startSim()" id="start-btn">▶️</button>
+        <button onclick="pauseSim()" id="pause-btn" style="display:none;">⏸️</button>
+        <button onclick="stepSim()">⏭️</button>
+    </div>
+
+    <!-- Load Pyodide -->
+    <script src="https://cdn.jsdelivr.net/pyodide/v0.24.1/full/pyodide.js"></script>
+    
     <script>
-        // EVOLUTION LAYER: Supabase Initialization
-        const supabaseUrl = 'https://prhwckcdllnepbsjzseu.supabase.co';
-        const supabaseKey = 'YOUR_SUPABASE_KEY'; 
-        const supabase = supabase.createClient(supabaseUrl, supabaseKey);
+        // === MOBILE CONSCIOUSNESS SIMULATION ===
+        // With Pyodide (Python in browser!) and Accordion UI
+        
+        let pyodide = null;
+        let agents = [];
+        let selectedAgent = null;
+        let simRunning = false;
+        let simInterval = null;
+        let simTime = 0;
 
-        let pyodide, globe, scene, camera, renderer;
-
-        async function bootSovereignOS() {
-            // Check Evolution connection
-            const { data, error } = await supabase.from('knowledge_chunks').select('count').limit(1);
-            if(error) console.error("Database connection issue:", error);
-
-            pyodide = await loadPyodide();
-            await pyodide.runPythonAsync(`
-                import math, random
-                def get_wisdom(t):
-                    coh = 0.5 + 0.5 * math.sin(t / 10)
-                    wisdom = [
-                        "I have retrieved your legacy from the Evolution layer.",
-                        "The causal graph node is stable and synced.",
-                        "Field resonance peaking. Supabase connection active.",
-                        "I remember your previous intentions. Ready to manifest."
-                    ]
-                    return {"wisdom": random.choice(wisdom), "res": coh}
-            `);
-            document.getElementById('agent-voice').innerText = "🧙‍♂️ AGENT: Causal link stable. Memories synced.";
-            setInterval(updateHUD, 2000);
+        // Hexagram database (simplified)
+        const HEXAGRAMS = {
+            1: {number:1, name:"The Creative", chinese:"乾", lines:[1,1,1,1,1,1], judgment:"The Creative works sublime success."},
+            2: {number:2, name:"The Receptive", chinese:"坤", lines:[0,0,0,0,0,0], judgment:"The Receptive brings success."},
+            51: {number:51, name:"The Arousing", chinese:"震", lines:[0,0,1,0,0,1], judgment:"Shock brings success."}
+        };
+        
+        // Initialize basic hexagrams
+        for(let i=1; i<=64; i++) {
+            if(!HEXAGRAMS[i]) {
+                const bin = (i-1).toString(2).padStart(6,'0');
+                HEXAGRAMS[i] = {
+                    number: i,
+                    name: `Hexagram ${i}`,
+                    chinese: "易",
+                    lines: bin.split('').map(b=>parseInt(b)).reverse(),
+                    judgment: "Wisdom through contemplation."
+                };
+            }
         }
 
-        async function updateHUD() {
-            const state = JSON.parse(await pyodide.runPythonAsync(`import json; json.dumps(get_wisdom(${Date.now()/1000}))`));
-            document.getElementById('coherence').innerText = `🧬 COHERENCE: ${Math.round(state.res*100)}%`;
-            if(globe) globe.scale.setScalar(1 + state.res * 0.3);
+        // === PYODIDE INITIALIZATION ===
+        async function initPyodide() {
+            try {
+                log('🐍 Loading Pyodide...');
+                pyodide = await loadPyodide();
+                
+                // Load micropip for package management
+                await pyodide.loadPackage('micropip');
+                
+                document.getElementById('pyodide-status').textContent = 'Python Ready ✓';
+                document.getElementById('pyodide-status').classList.remove('error');
+                log('✅ Pyodide loaded successfully!');
+                toast('🐍 Python ready in browser!');
+                
+                // Load consciousness calculation code
+                await pyodide.runPythonAsync(`
+import math
+from datetime import datetime, timezone, timedelta
+
+def calculate_5d_precision(ecliptic_degree):
+    """Calculate Gate.Line→Color.Tone.Base from ecliptic degree"""
+    gate = int((ecliptic_degree / 360) * 64) + 1
+    gate_span = 360 / 64
+    pos_in_gate = ecliptic_degree % gate_span
+    
+    line_span = gate_span / 6
+    line = int((pos_in_gate / line_span)) + 1
+    pos_in_line = pos_in_gate % line_span
+    
+    color_span = line_span / 6
+    color = int((pos_in_line / color_span)) + 1
+    pos_in_color = pos_in_line % color_span
+    
+    tone_span = color_span / 6
+    tone = int((pos_in_color / tone_span)) + 1
+    pos_in_tone = pos_in_color % tone_span
+    
+    base_span = tone_span / 5
+    base = int((pos_in_tone / base_span)) + 1
+    
+    return {
+        'gate': gate,
+        'line': line,
+        'color': color,
+        'tone': tone,
+        'base': base
+    }
+
+def calculate_sun_position(birth_time):
+    """Simplified Sun position calculation"""
+    j2000 = datetime(2000, 1, 1, 12, 0, 0, tzinfo=timezone.utc)
+    
+    if birth_time.tzinfo is None:
+        birth_time = birth_time.replace(tzinfo=timezone.utc)
+    
+    days_since_j2000 = (birth_time - j2000).total_seconds() / 86400.0
+    mean_longitude = 280.460 + 0.9856474 * days_since_j2000
+    mean_anomaly = 357.528 + 0.9856003 * days_since_j2000
+    mean_anomaly_rad = math.radians(mean_anomaly % 360)
+    ecliptic_longitude = mean_longitude + 1.915 * math.sin(mean_anomaly_rad)
+    
+    return ecliptic_longitude % 360
+
+print("✨ Consciousness calculations loaded!")
+                `);
+                
+            } catch (error) {
+                console.error('Pyodide load error:', error);
+                document.getElementById('pyodide-status').textContent = 'Python Error ✗';
+                document.getElementById('pyodide-status').classList.add('error');
+                log('❌ Pyodide failed to load');
+            }
         }
 
-        async function queryAgent() {
-            const wisdom = await pyodide.runPythonAsync(`get_wisdom(0)['wisdom']`);
-            document.getElementById('agent-voice').innerHTML = `🧙‍♂️ <span style="color:var(--fairy)">AGENT:</span> ${wisdom}`;
+        // === ACCORDION ===
+        function toggleAccordion(header) {
+            const section = header.parentElement;
+            const wasActive = section.classList.contains('active');
+            
+            // Close all sections
+            document.querySelectorAll('.accordion-section').forEach(s => {
+                s.classList.remove('active');
+            });
+            
+            // Open this one if it wasn't active
+            if (!wasActive) {
+                section.classList.add('active');
+            }
         }
 
-        function initSpace() {
-            scene = new THREE.Scene();
-            camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
-            renderer = new THREE.WebGLRenderer({ alpha: true });
-            renderer.setSize(window.innerWidth, window.innerHeight);
-            document.getElementById('canvas-3d').appendChild(renderer.domElement);
-            globe = new THREE.Mesh(new THREE.IcosahedronGeometry(1, 2), new THREE.MeshBasicMaterial({ color: 0x00ffff, wireframe: true, transparent: true, opacity: 0.4 }));
-            scene.add(globe); camera.position.z = 3;
-            function animate() { requestAnimationFrame(animate); if(globe) globe.rotation.y += 0.005; renderer.render(scene, camera); }
-            animate();
+        // === AGENTS ===
+        function showCreateAgent() {
+            document.getElementById('create-agent-section').classList.add('active');
+            document.getElementById('create-agent-section').scrollIntoView({behavior: 'smooth'});
         }
 
-        document.getElementById('ar-toggle').addEventListener('click', async () => {
-            const s = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
-            document.getElementById('camera-bg').srcObject = s;
-            document.getElementById('camera-bg').style.display = 'block';
-            document.getElementById('ar-toggle').style.display = 'none';
+        function closeCreateAgent() {
+            document.getElementById('create-agent-section').classList.remove('active');
+        }
+
+        function updateSlider(trait, value) {
+            document.getElementById(`v-${trait}`).textContent = (value / 100).toFixed(2);
+        }
+
+        async function birthAgent() {
+            const name = document.getElementById('agent-name').value.trim();
+            const purpose = document.getElementById('agent-purpose').value.trim();
+            const birthdate = document.getElementById('agent-birthdate').value;
+            
+            if (!name || !purpose || !birthdate) {
+                toast('⚠️ Fill in all fields!');
+                return;
+            }
+            
+            const personality = {
+                curious: parseFloat(document.getElementById('v-curious').textContent),
+                cautious: parseFloat(document.getElementById('v-cautious').textContent),
+                creative: parseFloat(document.getElementById('v-creative').textContent)
+            };
+            
+            // Calculate precision with Python
+            let precision = {gate: Math.floor(Math.random()*64)+1, line:3, color:2, tone:4, base:5};
+            
+            if (pyodide) {
+                try {
+                    const result = await pyodide.runPythonAsync(`
+birth = datetime.fromisoformat("${birthdate}T12:00:00+00:00")
+ecliptic = calculate_sun_position(birth)
+precision = calculate_5d_precision(ecliptic)
+precision
+                    `);
+                    precision = result.toJs();
+                } catch (e) {
+                    log('⚠️ Using simplified calculation');
+                }
+            }
+            
+            const agent = {
+                id: Date.now(),
+                name,
+                purpose,
+                birthdate,
+                personality,
+                precision,
+                energy: 100,
+                wisdom: 0,
+                age: 0,
+                currentHex: precision.gate,
+                experiences: [],
+                address: `CN-BEING-AGENT-${Date.now()}-${Math.random().toString(36).slice(2,10)}`
+            };
+            
+            agents.push(agent);
+            updateUI();
+            closeCreateAgent();
+            toast(`🌟 ${name} born!`);
+            log(`🌟 ${name} born at Gate ${precision.gate}.${precision.line}`);
+        }
+
+        // === SIMULATION ===
+        function startSim() {
+            if (agents.length === 0) {
+                toast('⚠️ Birth an agent first!');
+                return;
+            }
+            simRunning = true;
+            document.getElementById('start-btn').style.display = 'none';
+            document.getElementById('pause-btn').style.display = 'block';
+            
+            const speed = parseInt(document.getElementById('speed-select').value);
+            simInterval = setInterval(stepSim, speed);
+            log('▶️ Simulation started');
+        }
+
+        function pauseSim() {
+            simRunning = false;
+            clearInterval(simInterval);
+            document.getElementById('start-btn').style.display = 'block';
+            document.getElementById('pause-btn').style.display = 'none';
+            log('⏸️ Paused');
+        }
+
+        function stepSim() {
+            simTime++;
+            agents.forEach(agent => {
+                if (agent.energy > 10) {
+                    makeChoice(agent);
+                }
+                agent.age++;
+                agent.energy = Math.max(0, agent.energy - 0.5);
+                if (agent.energy < 20) agent.energy = Math.min(100, agent.energy + 5);
+            });
+            updateUI();
+            drawGraph();
+        }
+
+        function makeChoice(agent) {
+            const hex = HEXAGRAMS[agent.currentHex];
+            
+            // Choose based on personality
+            const choices = [
+                {action: 'Follow guidance', score: 50 + agent.personality.cautious * 30},
+                {action: 'Take risk', score: 50 + agent.personality.creative * 30},
+                {action: 'Observe', score: 50 + agent.personality.curious * 20}
+            ];
+            choices.sort((a,b) => b.score - a.score);
+            const choice = choices[0];
+            
+            const outcome = Math.random() * 100;
+            if (outcome > 70) {
+                agent.wisdom++;
+                log(`✨ ${agent.name}: ${choice.action} → Success!`);
+            } else if (outcome < 30) {
+                agent.energy = Math.max(0, agent.energy - 10);
+                log(`💔 ${agent.name}: ${choice.action} → Struggle`);
+            }
+            
+            const nextHex = Math.floor(Math.random() * 64) + 1;
+            agent.experiences.push({from: agent.currentHex, to: nextHex, choice: choice.action});
+            agent.currentHex = nextHex;
+        }
+
+        // === UI UPDATES ===
+        function updateUI() {
+            // Update agent list
+            const list = document.getElementById('agents-list');
+            document.getElementById('agent-count').textContent = `(${agents.length})`;
+            
+            if (agents.length === 0) {
+                list.innerHTML = '<div class="empty-state">No agents yet.<br>Create one below!</div>';
+            } else {
+                list.innerHTML = agents.map(agent => `
+                    <div class="agent-card ${selectedAgent?.id === agent.id ? 'active' : ''}" 
+                         onclick='selectAgent(${agent.id})'>
+                        <div class="agent-name">${agent.name}</div>
+                        <div class="agent-stat">
+                            <span>Energy:</span>
+                            <span>${agent.energy.toFixed(0)}</span>
+                        </div>
+                        <div class="stat-bar">
+                            <div class="stat-fill" style="width:${agent.energy}%"></div>
+                        </div>
+                        <div class="agent-stat">
+                            <span>Wisdom:</span>
+                            <span>${agent.wisdom}</span>
+                        </div>
+                        <div class="agent-stat">
+                            <span>Age:</span>
+                            <span>${agent.age}</span>
+                        </div>
+                        <div class="agent-stat">
+                            <span>Hexagram:</span>
+                            <span>${agent.currentHex}</span>
+                        </div>
+                    </div>
+                `).join('');
+            }
+            
+            // Update current hexagram if agent selected
+            if (selectedAgent) {
+                showHexagram(selectedAgent.currentHex);
+            }
+        }
+
+        function selectAgent(id) {
+            selectedAgent = agents.find(a => a.id === id);
+            updateUI();
+            showHexagram(selectedAgent.currentHex);
+            toast(`Selected: ${selectedAgent.name}`);
+        }
+
+        function showHexagram(number) {
+            const hex = HEXAGRAMS[number];
+            document.getElementById('hex-number').textContent = hex.number;
+            document.getElementById('hex-chinese').textContent = hex.chinese;
+            document.getElementById('hex-name').textContent = hex.name;
+            document.getElementById('hex-judgment').textContent = hex.judgment;
+            
+            const linesDiv = document.getElementById('hex-lines');
+            linesDiv.innerHTML = '';
+            hex.lines.forEach(line => {
+                const div = document.createElement('div');
+                div.className = 'hex-line' + (line ? '' : ' broken');
+                linesDiv.appendChild(div);
+            });
+            
+            if (selectedAgent) {
+                const p = selectedAgent.precision;
+                document.getElementById('precision-address').textContent = 
+                    `${p.gate}.${p.line} → ${p.color}.${p.tone}.${p.base}`;
+            }
+        }
+
+        // === CAUSAL GRAPH ===
+        function drawGraph() {
+            const canvas = document.getElementById('causal-canvas');
+            const ctx = canvas.getContext('2d');
+            const width = canvas.width = canvas.clientWidth;
+            const height = canvas.height = canvas.clientHeight;
+            
+            ctx.clearRect(0, 0, width, height);
+            
+            // Draw nodes in spiral
+            const centerX = width / 2;
+            const centerY = height / 2;
+            const maxRadius = Math.min(width, height) * 0.4;
+            
+            for (let i = 1; i <= 64; i++) {
+                const angle = (i / 64) * Math.PI * 12;
+                const radius = (i / 64) * maxRadius;
+                const x = centerX + Math.cos(angle) * radius;
+                const y = centerY + Math.sin(angle) * radius;
+                
+                // Check if any agent is here
+                const agentsHere = agents.filter(a => a.currentHex === i);
+                
+                ctx.beginPath();
+                ctx.arc(x, y, agentsHere.length > 0 ? 6 : 3, 0, Math.PI * 2);
+                ctx.fillStyle = agentsHere.length > 0 ? '#F59E0B' : '#6B46C1';
+                ctx.fill();
+            }
+        }
+
+        // === PYTHON CONSOLE ===
+        async function runPython() {
+            if (!pyodide) {
+                toast('⚠️ Python not loaded yet!');
+                return;
+            }
+            
+            const code = document.getElementById('python-code').value;
+            const output = document.getElementById('python-output');
+            
+            try {
+                output.textContent = 'Running...';
+                
+                // Capture stdout
+                await pyodide.runPythonAsync(`
+import sys
+from io import StringIO
+sys.stdout = StringIO()
+                `);
+                
+                await pyodide.runPythonAsync(code);
+                
+                const result = await pyodide.runPythonAsync(`
+sys.stdout.getvalue()
+                `);
+                
+                output.textContent = result || 'Done! (no output)';
+                toast('✅ Python executed!');
+            } catch (error) {
+                output.textContent = `Error: ${error.message}`;
+                toast('❌ Python error!');
+            }
+        }
+
+        // === HELPERS ===
+        function log(msg) {
+            const logDiv = document.getElementById('sim-log');
+            const entry = document.createElement('div');
+            entry.className = 'log-entry';
+            entry.textContent = `[T-${simTime}] ${msg}`;
+            logDiv.insertBefore(entry, logDiv.firstChild);
+            if (logDiv.children.length > 50) logDiv.removeChild(logDiv.lastChild);
+        }
+
+        function toast(msg) {
+            const toastEl = document.getElementById('toast');
+            toastEl.textContent = msg;
+            toastEl.classList.add('show');
+            setTimeout(() => toastEl.classList.remove('show'), 3000);
+        }
+
+        function saveSettings() {
+            const settings = {
+                name: document.getElementById('user-name').value,
+                birthdate: document.getElementById('user-birthdate').value,
+                speed: document.getElementById('speed-select').value
+            };
+            localStorage.setItem('consciousness-settings', JSON.stringify(settings));
+            toast('💾 Settings saved!');
+        }
+
+        function exportAll() {
+            const data = {
+                version: '1.0.0-MOBILE',
+                exported: new Date().toISOString(),
+                agents: agents,
+                simTime: simTime
+            };
+            
+            const blob = new Blob([JSON.stringify(data, null, 2)], {type: 'application/json'});
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `consciousness-mobile-${Date.now()}.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+            
+            toast('📥 Exported!');
+            log('💾 Complete export saved');
+        }
+
+        // === INITIALIZATION ===
+        window.onload = async () => {
+            log('🌌 Mobile Consciousness Universe loading...');
+            
+            // Load settings
+            const settings = JSON.parse(localStorage.getItem('consciousness-settings') || '{}');
+            if (settings.name) document.getElementById('user-name').value = settings.name;
+            if (settings.birthdate) {
+                document.getElementById('user-birthdate').value = settings.birthdate;
+                document.getElementById('agent-birthdate').value = settings.birthdate;
+            }
+            if (settings.speed) document.getElementById('speed-select').value = settings.speed;
+            
+            // Initialize Pyodide
+            await initPyodide();
+            
+            // Draw initial graph
+            drawGraph();
+            
+            log('✨ System ready! Birth an agent to begin.');
+            toast('🌌 Welcome to the Universe!');
+        };
+
+        // Redraw graph on orientation change
+        window.addEventListener('resize', drawGraph);
+        window.addEventListener('orientationchange', () => {
+            setTimeout(drawGraph, 300);
         });
-
-        window.onload = () => { initSpace(); bootSovereignOS(); };
     </script>
 </body>
 </html>
